@@ -1,3 +1,80 @@
+# 8.2.0 / 2020-10-15
+
+The major feature added in v8.2.0 is addition of support for [_global fixtures_](https://mochajs.org/#global-fixtures).
+
+While Mocha has always had the ability to run setup and teardown via a global fixture (e.g., `before()` at the top level of a test file) when running in serial mode, Mocha v8.0.0 added support for parallel runs. Parallel runs are _incompatible_ with this strategy; e.g., a top-level `before()` would only run for the file in which it was defined.
+
+With [global fixtures](https://mochajs.org/#global-fixtures), Mocha can now perform user-defined setup and teardown _regardless_ of mode, and these fixtures are guaranteed to run _once and only once_. This holds for parallel mode, serial mode, and even "watch" mode (the teardown will run once you use Ctrl-C, just before Mocha finally exits). Tasks such as starting and stopping servers are well-suited to global fixtures, but _not_ sharing resources--global fixtures do _not_ share context with your test files (but they do share context with each other).
+
+Here's a short example of usage:
+
+```js
+// fixtures.js
+
+// can be async or not
+exports.mochaGlobalSetup = async function() {
+  this.server = await startSomeServer({port: process.env.TEST_PORT});
+  console.log(`server running on port ${this.server.port}`);
+};
+
+exports.mochaGlobalTeardown = async function() {
+  // the context (`this`) is shared, but not with the test files
+  await this.server.stop();
+  console.log(`server on port ${this.server.port} stopped`);
+};
+
+// this file can contain root hook plugins as well!
+// exports.mochaHooks = { ... }
+```
+
+Fixtures are loaded with `--require`, e.g., `mocha --require fixtures.js`.
+
+For detailed information, please see the [documentation](https://mochajs.org/#global-fixtures) and this handy-dandy [flowchart](https://mochajs.org/#test-fixture-decision-tree-wizard-thing) to help understand the differences between hooks, root hook plugins, and global fixtures (and when you should use each).
+
+## :tada: Enhancements
+
+- #4308: Support run-once [global setup & teardown fixtures](https://mochajs.org/#global-fixtures) (@boneskull)
+- #4409: Parallel mode and custom reporter improvements (@boneskull):
+  - Support custom worker-process-only reporters (`Runner.prototype.workerReporter()`)
+  - Enable opt-in of object reference matching for advanced custom reporters (`Runner.prototype.linkPartialObjects()`)
+  - Enable detection of parallel mode (`Runner.prototype.isParallelMode()`)
+- #4442: Multi-part extensions (e.g., `test.js`) now usable with `--extension` option (@jordanstephens)
+- #4472: Leading dots (e.g., `.js`, `.test.js`) now usable with `--extension` option (@boneskull)
+- #4434: Output of `json` reporter now contains `speed` ("fast"/"medium"/"slow") property (@wwhurin)
+- #4464: Errors thrown by serializer in parallel mode now have error codes (@evaline-ju)
+- #4465: Worker processes guaranteed (as opposed to "very likely") to exit before Mocha does (@boneskull)
+
+## :bug: Fixes
+
+- #4476: Fix truly weird issue affecting `npm` v6.x causing some of Mocha's deps to be installed when `mocha` is present in a package's `devDependencies` and `npm install --production` is run the package's working copy (@boneskull)
+
+* attempt to force colors in karma config
+* replace promise.allsettled with @ungap/promise-all-settled; closes #4474
+* remove duplicated/problem reporter tests; closes #4469
+* fix: remove job count from parallel mode debug log (#4416)
+* add "fixture flowchart" to docs (#4440)
+* support leading dots in --extension
+* chore(deps): upgrade to latest stable - replace `rollup-plugin-node-builtins` with `rollup-plugin-node-polyfills`, as former causes audit failures and latter seems just a bit\* more maintained. - regenerate lock file
+* Support multipart extensions like ".test.js" (#4442)
+* refactor: utils.type() (#4457); closes #4306
+* Change serializer errors to use error codes (#4464)
+* make guarantees about orphaned processes
+* avoid deprecated add-path in GHA workflow
+* parallel mode: enable custom worker reporters and object references (#4409); closes #4403
+* run all node.js tests on GHA (#4459)
+* cleanup a little bit of eslint config
+* Update eslint version (#4443)
+* implement Open Collective categories for extended filtering
+* ci(win): setup GH actions for windows CI (#4402)
+* Add speed in -R json option (#4226) (#4434)
+* remove unused interface tests (#4247)
+* Add npm and node version badges to README
+* implementation of global setup/teardown; closes #4308 (#4360)
+* redirect webpack test output to a temp dir
+* remove wallaby-logo.png trim option
+* fix typo in 8.1.2 changelog (#4432)
+* fix lintstagedrc
+
 # 8.1.3 / 2020-08-28
 
 ## :bug: Fixes
